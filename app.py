@@ -1,11 +1,10 @@
 import streamlit as st
 import random
-import math
 
-st.set_page_config(page_title="ハイパー計算トレーナー", layout="centered")
+st.set_page_config(page_title="計算ルーレット", layout="centered")
 
-# スタイリッシュなデザインCSS
-hide_style = """
+# ─── スタイリッシュ＆視認性重視のカスタムCSS ───
+custom_style = """
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
@@ -15,140 +14,117 @@ hide_style = """
         padding-bottom: 1.5rem;
         max-width: 650px;
     }
-    .question-box {
-        font-size: 2.2rem;
-        font-weight: bold;
+    
+    /* 黒背景・白文字の問題表示ボックス */
+    .question-card {
+        background-color: #111111;
+        color: #ffffff;
+        font-size: 2.8rem;
+        font-weight: 700;
         text-align: center;
-        background-color: #f8f9fa;
-        padding: 30px;
-        border-radius: 12px;
+        padding: 35px 20px;
+        border-radius: 8px;
         margin: 20px 0;
-        border: 2px solid #e9ecef;
-        letter-spacing: 1px;
+        letter-spacing: 2px;
+        border: 1px solid #333333;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
-    .answer-box {
-        font-size: 1.8rem;
-        font-weight: bold;
+
+    /* 回答表示ボックス */
+    .answer-card {
+        background-color: #1e293b;
+        color: #38bdf8;
+        font-size: 2.2rem;
+        font-weight: 700;
         text-align: center;
-        color: #2e7d32;
-        background-color: #e8f5e9;
-        padding: 20px;
-        border-radius: 12px;
+        padding: 25px 20px;
+        border-radius: 8px;
         margin: 20px 0;
-        border: 2px solid #c8e6c9;
+        border: 1px solid #0284c7;
+        letter-spacing: 1.5px;
     }
     </style>
 """
-st.markdown(hide_style, unsafe_allow_html=True)
+st.markdown(custom_style, unsafe_allow_html=True)
 
-st.title("🧮 ハイパー計算トレーナー")
+st.title("計算ルーレット")
 
-# ─── 難易度設定 ───
-level = st.selectbox(
-    "難易度を選択",
-    ["🔥 5桁の巨大な数の四則演算 (5桁+5桁 / 5桁-5桁)", "⚡ 中学数学（平方根・二次方程式の解）", "🚀 高度な数式・分数・複合計算"],
-    label_visibility="collapsed"
-)
+# ─── 設定パネル ───
+with st.expander("計算設定", expanded=True):
+    col_config1, col_config2 = st.columns(2)
+    with col_config1:
+        digits = st.slider("桁数", min_value=1, max_value=6, value=5)
+    with col_config2:
+        operations = st.multiselect(
+            "演算子",
+            options=["＋", "－", "×", "÷"],
+            default=["＋", "－"]
+        )
 
-# 難問生成ロジック
-def generate_hard_question(selected_level):
-    if "5桁の巨大な数" in selected_level:
-        op = random.choice(["+", "-", "×"])
-        if op == "+":
-            a = random.randint(10000, 99999)
-            b = random.randint(10000, 99999)
-            ans = f"{a + b:,}"
-            expr = f"{a:,} ＋ {b:,}"
-        elif op == "-":
-            a = random.randint(20000, 99999)
-            b = random.randint(10000, a)
-            ans = f"{a - b:,}"
-            expr = f"{a:,} － {b:,}"
-        else: # 4桁 × 2桁 または 3桁
-            a = random.randint(1000, 9999)
-            b = random.randint(111, 999)
-            ans = f"{a * b:,}"
-            expr = f"{a:,} × {b:,}"
+if not operations:
+    st.warning("演算子を1つ以上選択してください。")
+    st.stop()
 
-    elif "中学数学" in selected_level:
-        sub = random.choice(["quadratic", "radical"])
-        if sub == "quadratic":
-            # 二次方程式の解: x^2 - (p+q)x + pq = 0
-            p = random.randint(-5, 5)
-            q = random.randint(-5, 5)
-            while p == q or p == 0 or q == 0:
-                p, q = random.randint(-5, 5), random.randint(-5, 5)
-            b_coef = -(p + q)
-            c_coef = p * q
-            b_str = f"+ {b_coef}x" if b_coef > 0 else f"- {abs(b_coef)}x" if b_coef < 0 else ""
-            c_str = f"+ {c_coef}" if c_coef > 0 else f"- {abs(c_coef)}" if c_coef < 0 else ""
-            expr = f"x^2 {b_str} {c_str} = 0 の解"
-            ans = f"x = {min(p, q)}, {max(p, q)}"
-        else:
-            # 平方根の計算 (例: √48 + √27)
-            bases = [2, 3, 5]
-            base = random.choice(bases)
-            m1 = random.randint(2, 4)
-            m2 = random.randint(2, 4)
-            v1 = (m1**2) * base
-            v2 = (m2**2) * base
-            expr = f"\\sqrt{{{v1}}} ＋ \\sqrt{{{v2}}}"
-            total_m = m1 + m2
-            ans = f"{total_m}\\sqrt{{{base}}}"
-            
-    else: # 高度な分数・複合
-        d = random.choice([6, 8, 12, 15])
-        n1 = random.randint(1, d-1)
-        n2 = random.randint(1, d-1)
-        expr = f"\\frac{{{n1}}}{{{{ {d} }}}} ＋ \\frac{{{n2}}}{{{{ {d} }}}}"
-        num = n1 + n2
-        g = math.gcd(num, d)
-        if d // g == 1:
-            ans = str(num // g)
-        else:
-            ans = f"\\frac{{{num//g}}}{{{{ {d//g} }}}}"
+# ─── 四則演算の自動生成ロジック ───
+def generate_arithmetic_question(digits, ops):
+    op = random.choice(ops)
+    min_val = 10 ** (digits - 1) if digits > 1 else 1
+    max_val = (10 ** digits) - 1
 
-    return expr, ans
+    if op == "＋":
+        a = random.randint(min_val, max_val)
+        b = random.randint(min_val, max_val)
+        ans = a + b
+        expr = f"{a:,} ＋ {b:,}"
+    elif op == "－":
+        a = random.randint(min_val, max_val)
+        b = random.randint(min_val, max_val)
+        if a < b:
+            a, b = b, a
+        ans = a - b
+        expr = f"{a:,} － {b:,}"
+    elif op == "×":
+        a = random.randint(min_val, max_val)
+        # かけ算は桁数が大きくなりすぎないよう調整
+        b_max = 99 if digits > 3 else max_val
+        b_min = 2 if digits > 3 else min_val
+        b = random.randint(b_min, b_max)
+        ans = a * b
+        expr = f"{a:,} × {b:,}"
+    else: # ÷
+        b = random.randint(2, 99 if digits > 3 else 9)
+        ans_val = random.randint(min_val, max_val // max(b, 1) + 1)
+        a = b * ans_val
+        ans = ans_val
+        expr = f"{a:,} ÷ {b:,}"
 
-# ─── セッション状態の管理 ───
-if "current_level" not in st.session_state or st.session_state.current_level != level:
-    st.session_state.current_level = level
-    expr, ans = generate_hard_question(level)
+    return expr, f"{ans:,}"
+
+# 設定変更時のセッションリセット
+config_key = f"{digits}_{sorted(operations)}"
+if "config_key" not in st.session_state or st.session_state.config_key != config_key:
+    st.session_state.config_key = config_key
+    expr, ans = generate_arithmetic_question(digits, operations)
     st.session_state.expr = expr
     st.session_state.ans = ans
     st.session_state.revealed = False
 
-def next_q():
-    expr, ans = generate_hard_question(st.session_state.current_level)
+def next_question():
+    expr, ans = generate_arithmetic_question(digits, operations)
     st.session_state.expr = expr
     st.session_state.ans = ans
     st.session_state.revealed = False
 
-# ─── 画面描画 ───
-st.markdown("問題を見て頭の中で計算し、**「答えを確認する」**ボタンを押してください。")
+# ─── 問題表示エリア（黒背景・白文字） ───
+st.markdown(f'<div class="question-card">{st.session_state.expr} ＝ ？</div>', unsafe_allow_html=True)
 
-# 問題の表示（LaTeX数式が含まれる場合は綺麗にレンダリング）
-if "\\" in st.session_state.expr:
-    st.markdown(f"<div class='question-box'>", unsafe_allow_html=True)
-    st.latex(st.session_state.expr)
-    st.markdown(f"</div>", unsafe_allow_html=True)
-else:
-    st.markdown(f'<div class="question-box">{st.session_state.expr} ＝ ？</div>', unsafe_allow_html=True)
-
-# ─── アクション部分 ───
+# ─── ボタン操作 ───
 if not st.session_state.revealed:
-    if st.button("👁️ 答えを確認する", use_container_width=True, type="primary"):
+    if st.button("答えを確認する", use_container_width=True, type="primary"):
         st.session_state.revealed = True
         st.rerun()
 else:
-    # 答えの表示
-    if "\\" in st.session_state.ans:
-        st.markdown(f"<div class='answer-box'>答え：", unsafe_allow_html=True)
-        st.latex(st.session_state.ans)
-        st.markdown(f"</div>", unsafe_allow_html=True)
-    else:
-        st.markdown(f'<div class="answer-box">答え： {st.session_state.ans}</div>', unsafe_allow_html=True)
-        
-    if st.button("🔄 次の問題へ進む", use_container_width=True, type="primary"):
-        next_q()
+    st.markdown(f'<div class="answer-card">答え： {st.session_state.ans}</div>', unsafe_allow_html=True)
+    if st.button("次の問題へ進む", use_container_width=True, type="primary"):
+        next_question()
         st.rerun()
